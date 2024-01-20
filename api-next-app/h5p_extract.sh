@@ -7,7 +7,7 @@ mv $1 ${1%.h5p}.zip
 unzip ${1%.h5p}.zip -d extracted_content
 
 # Copy the required files
-cp -r extracted_content/content/ ./content
+cp -r extracted_content/content/* ./content/
 
 # Check if "libraries" folder exists
 if [ -d "libraries" ]

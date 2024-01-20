@@ -3,6 +3,8 @@ import formidable, { Files, Fields } from 'formidable';
 import fs from 'fs';
 import path from 'path';
 import { exec } from 'child_process';
+import { getDb } from "../../lib/conn";
+import { Binary } from "mongodb";
 
 export const config = {
   api: {
@@ -36,7 +38,6 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
           if (err) reject(err);
 
           const file = files.file;
-          console.log(`bash ${process.cwd()}/h5p_extract.sh ${filepath}`);
           exec(`bash ${process.cwd()}/h5p_extract.sh ${filepath}`, (error, stdout, stderr) => {
             if (error) {
               console.error(`exec error: ${error}`);
@@ -51,10 +52,39 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
         });
       });
 
+
+      const contentDir = path.join(process.cwd(), 'content');
+
+      // Read the content directory and get a list of file paths
+      const filesInContentDir = await fs.promises.readdir(contentDir);
+      console.log('filesInContentDir', filesInContentDir);
+
+      const fileContents = await Promise.all(
+        filesInContentDir.map(async (filename) => {
+          const filePath = path.join(contentDir, filename);
+
+          // Check if the path is a file and not a directory
+          const stat = await fs.promises.stat(filePath);
+          if (stat.isFile()) {
+            // Read the file content
+            const content = await fs.promises.readFile(filePath);
+            // Return the filename and its binary content
+            return { filename, content: new Binary(content) };
+          }
+        })
+      );
+
+      // Filter out undefined values (from directories)
+      const filteredFileContents = fileContents.filter(content => content !== undefined);
+
+      // Get the MongoDB connection
+      const db = getDb();
+      db.collection('h5p').insertOne({ ...fields, files: filteredFileContents });
+
       // Process the files and fields as needed
-      return res.status(200).json({ fields, files, message: 'File uploaded and script executed successfully' });
+      return res.status(200).json({ fields, files, fileContents, message: 'File uploaded and script executed successfully' });
     } catch (err) {
-      res.status(400).send({ message: 'Bad Request' })
+      res.status(400).send({ message: `Error uploading file: ${err}` })
     }
   } else {
     return res.status(405).json({
