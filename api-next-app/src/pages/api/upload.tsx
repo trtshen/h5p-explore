@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from "next/types";
-import formidable, { Files, Fields } from 'formidable';
+import formidable, { Files, Fields, File } from 'formidable';
 import fs from 'fs';
 import path from 'path';
 import { exec } from 'child_process';
@@ -23,8 +23,8 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
   if (req.method === 'POST') {
     try {
       let filepath = '';
-      form.on('fileBegin', function (name, file) {
-        file.filepath = path.join(process.cwd(), 'uploads', file.originalFilename);
+      form.on('fileBegin', (name, file: File) => {
+        file.filepath = path.join(process.cwd(), 'uploads', file.originalFilename || file.newFilename);
         filepath = file.filepath;
         console.log('fileBegin', filepath);
       });
