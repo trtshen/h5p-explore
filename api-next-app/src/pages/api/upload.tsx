@@ -24,8 +24,10 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
   if (req.method === 'POST') {
     try {
       let filepath = '';
+      let basename = '';
       form.on('fileBegin', (name, file: File) => {
         // const nameWithoutExtension = file.originalFilename?.replace('.h5p', '') || file.newFilename?.replace('.h5p', '');
+        basename = file.originalFilename?.replace('.h5p', '') || file.newFilename?.replace('.h5p', '');
         file.filepath = path.join(process.cwd(), 'uploads', file.originalFilename || file.newFilename);
         filepath = file.filepath;
         console.log('fileBegin', file.filepath);
@@ -57,49 +59,40 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
       
       // Read the content directory and get a list of file paths
       const newFilePath = filepath.replace('.h5p', '');
-      const filesInContentDir = await fs.promises.readdir(newFilePath);
-      console.log('filesInContentDir', filesInContentDir);
+      // const filesInContentDir = await fs.promises.readdir(newFilePath);
+      // console.log('filesInContentDir', filesInContentDir);
 
-      const fileContents = await Promise.all(
-        filesInContentDir.map(async (filename) => {
-          const filePath = path.join(newFilePath, filename);
+      const fileContents = await readDirectoryRecursively(newFilePath);
 
-          // Check if the path is a file and not a directory
-          const stat = await fs.promises.stat(filePath);
-          if (stat.isFile()) {
-            // Read the file content
-            const content = await fs.promises.readFile(filePath);
-            // Return the filename and its binary content
-            // return { filename, content: new Binary(content) };
-            return { filename, content };
-          }
-        })
-      );
 
+      console.log('fileContents', fileContents);
+      
       // Filter out undefined values (from directories)
       const filteredFileContents = fileContents.filter(content => content !== undefined);
 
-      // Get the MongoDB connection
-      // const db = getDb();
-      // db.collection('h5p').insertOne({ ...fields, files: filteredFileContents });
-
       console.log('filteredFileContents', filteredFileContents);
       // Upload the files to S3
-      /* const promises = filteredFileContents.map(async (fileContent) => {
+      const promises = filteredFileContents.map(async (fileContent) => {
         const { filename, content } = fileContent;
         const params = {
-          Bucket: 'h5p',
-          Key: filename,
+          Bucket: process.env.AWS_BUCKET_NAME || 'h5p-contents',
+          Key: `${basename}/${filename}`,
           Body: content,
         };
-        console.log('params', params);
-        return params;
-        // return s3.upload(params).promise();
-      }); */
+        return s3.upload(params).promise();
+      });
 
+      const uploads = await Promise.all(promises);
+      console.log('All files uploaded to S3');
+
+      // Get the MongoDB connection
+      const db = getDb();
+      db.collection('h5p').insertOne({
+        uploads,
+      });
 
       // Process the files and fields as needed
-      return res.status(200).json({ fields, files, fileContents, message: 'File uploaded and script executed successfully' });
+      return res.status(200).json({ uploads, message: 'File uploaded and script executed successfully' });
     } catch (err) {
       res.status(400).send({ message: `Error uploading file: ${err}` })
     }
@@ -110,5 +103,30 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
     });
   }
 }
+
+async function readDirectoryRecursively(dir: string, parentPath: string = ''): Promise<{ filename: string, content: Buffer }[]> {
+  let fileContents: { filename: string, content: Buffer }[] = [];
+  const entries = await fs.promises.readdir(dir, { withFileTypes: true });
+
+  for (const entry of entries) {
+    const fullPath = path.join(dir, entry.name);
+    const relativePath = path.join(parentPath, entry.name);
+
+    if (entry.isDirectory()) {
+      // If entry is a directory, recursively read its contents
+      fileContents = [
+        ...fileContents,
+        ...(await readDirectoryRecursively(fullPath, relativePath)),
+      ];
+    } else {
+      // If entry is a file, read its content
+      const content = await fs.promises.readFile(fullPath);
+      fileContents.push({ filename: relativePath, content });
+    }
+  }
+
+  return fileContents;
+}
+
 
 export default handler;
