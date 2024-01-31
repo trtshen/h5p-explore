@@ -5,6 +5,7 @@ import path from 'path';
 import { exec } from 'child_process';
 import { getDb } from "../../lib/conn";
 import { Binary } from "mongodb";
+import s3 from '../../lib/aws-s3';
 
 export const config = {
   api: {
@@ -24,9 +25,10 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
     try {
       let filepath = '';
       form.on('fileBegin', (name, file: File) => {
+        // const nameWithoutExtension = file.originalFilename?.replace('.h5p', '') || file.newFilename?.replace('.h5p', '');
         file.filepath = path.join(process.cwd(), 'uploads', file.originalFilename || file.newFilename);
         filepath = file.filepath;
-        console.log('fileBegin', filepath);
+        console.log('fileBegin', file.filepath);
       });
 
       const { fields, files } = await new Promise<{ fields: Fields; files: Files; }>((resolve, reject) => {
@@ -43,25 +45,24 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
               console.error(`exec error: ${error}`);
               return res.status(500).json({ error: 'Error executing the script' });
             }
-            console.log(`stdout: ${stdout}`);
+            // console.log(`stdout: ${stdout}`);
             console.error(`stderr: ${stderr}`);
 
             resolve({ fields, files });
           });
-          
         });
       });
-
-
-      const contentDir = path.join(process.cwd(), 'content');
-
+      
+      console.log('filepath2', filepath);
+      
       // Read the content directory and get a list of file paths
-      const filesInContentDir = await fs.promises.readdir(contentDir);
+      const newFilePath = filepath.replace('.h5p', '');
+      const filesInContentDir = await fs.promises.readdir(newFilePath);
       console.log('filesInContentDir', filesInContentDir);
 
       const fileContents = await Promise.all(
         filesInContentDir.map(async (filename) => {
-          const filePath = path.join(contentDir, filename);
+          const filePath = path.join(newFilePath, filename);
 
           // Check if the path is a file and not a directory
           const stat = await fs.promises.stat(filePath);
@@ -69,7 +70,8 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
             // Read the file content
             const content = await fs.promises.readFile(filePath);
             // Return the filename and its binary content
-            return { filename, content: new Binary(content) };
+            // return { filename, content: new Binary(content) };
+            return { filename, content };
           }
         })
       );
@@ -78,8 +80,23 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
       const filteredFileContents = fileContents.filter(content => content !== undefined);
 
       // Get the MongoDB connection
-      const db = getDb();
-      db.collection('h5p').insertOne({ ...fields, files: filteredFileContents });
+      // const db = getDb();
+      // db.collection('h5p').insertOne({ ...fields, files: filteredFileContents });
+
+      console.log('filteredFileContents', filteredFileContents);
+      // Upload the files to S3
+      /* const promises = filteredFileContents.map(async (fileContent) => {
+        const { filename, content } = fileContent;
+        const params = {
+          Bucket: 'h5p',
+          Key: filename,
+          Body: content,
+        };
+        console.log('params', params);
+        return params;
+        // return s3.upload(params).promise();
+      }); */
+
 
       // Process the files and fields as needed
       return res.status(200).json({ fields, files, fileContents, message: 'File uploaded and script executed successfully' });

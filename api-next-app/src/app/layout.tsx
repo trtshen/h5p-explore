@@ -18,14 +18,6 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-        <ul className="divide-y divide-gray-200">
-          <li>
-            <Link href="/">Home</Link>
-          </li>
-          <li>
-            <Link href="/h5p">H5P</Link>
-          </li>
-        </ul>
         {children}
       </body>
     </html>

@@ -4,12 +4,14 @@ import React, { useState } from 'react';
 export default function H5P() {
   const [selectedFile, setSelectedFile] = useState(null);
 
-  const handleFileChange = (event) => {
+  const handleFileChange = (event: any) => {
+    if (!event?.target?.files) return;
+    
     setSelectedFile(event.target.files[0]);
     // Additional validation can be added here
   };
 
-  const handleSubmit = async (event) => {
+  const handleSubmit = async (event: any) => {
     event.preventDefault();
     if (!selectedFile) {
       alert('Please select a file to upload');
