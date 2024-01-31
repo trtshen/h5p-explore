@@ -51,7 +51,7 @@ export default function H5P() {
   }
 
   return (
-    <div className="container mx-auto p-4">
+    <div className="container mx-auto p-4 flex flex-col space-y-4">
       <h1 className="text-2xl font-bold mb-4">Upload H5P File</h1>
       <form onSubmit={handleSubmit} className="space-y-4">
         <input
@@ -61,7 +61,7 @@ export default function H5P() {
         />
         <button
           type="submit"
-          className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-700"
+          className="block w-full px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-700"
         >
           Upload
         </button>
