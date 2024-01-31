@@ -32,6 +32,24 @@ export default function H5P() {
     }
   };
 
+  const accessToS3 = async () => {
+    const response = await fetch('/api/file?filename=sizzling');
+    const data = await response.text();
+    console.log('data', data);
+  };
+
+  const accessToS3Folder = async () => {
+    const response = await fetch('/api/folder', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ folder: 'sizzling' }),
+    });
+    const data = await response.json();
+    console.log('app-data', data);
+  }
+
   return (
     <div className="container mx-auto p-4">
       <h1 className="text-2xl font-bold mb-4">Upload H5P File</h1>
@@ -48,6 +66,12 @@ export default function H5P() {
           Upload
         </button>
       </form>
+      <button onClick={accessToS3}
+        className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-700"
+      >Access to S3</button>
+      <button onClick={accessToS3Folder}
+        className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-700"
+      >Access to S3 Folder</button>
     </div>
   );
 }
