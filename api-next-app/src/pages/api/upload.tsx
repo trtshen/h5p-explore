@@ -88,6 +88,8 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
       // Get the MongoDB connection
       const db = getDb();
       db.collection('h5p').insertOne({
+        name: basename,
+        dir: "/" + basename,
         uploads,
       });
 
