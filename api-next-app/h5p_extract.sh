@@ -13,6 +13,7 @@ unzip ./uploads/${baseName}.zip -d ./uploads/${baseName}_extracted
 # Copy the required files
 mkdir -p ./uploads/${baseName}/
 cp -r ./uploads/${baseName}_extracted/content/* ./uploads/${baseName}/
+cp ./uploads/${baseName}_extracted/h5p.json ./uploads/${baseName}/
 
 # Check if "libraries" folder exists
 if [ -d "libraries" ]
