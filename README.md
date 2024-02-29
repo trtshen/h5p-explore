@@ -1,8 +1,12 @@
 # H5P content upload and serving
 
 ## Running nextjs app locally
-1. in the index page of the app, upload a h5p file (there is no error handling for file upload, make sure you upload correct file generated from [Lumi App](https://app.lumi.education/#download)
-2. 
+1. Run the web with *npm run dev*
+2. in the index page of the app, upload a h5p file (there is no error handling for file upload, make sure you upload correct file generated from [Lumi App](https://app.lumi.education/#download)
+
+### Accessing the API
+1. Once the next server is running locally, you can start using the local API for accessing the successfully uploaded H5P content
+2. You'll know the API from directory `./src/pages/api`. For example link format: `localhost:8080/api/file?filename=sample` 
 
 ## Development
 1. *cd api-next-app* from project root directory
